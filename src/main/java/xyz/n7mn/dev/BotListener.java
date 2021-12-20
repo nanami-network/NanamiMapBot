@@ -104,11 +104,6 @@ class BotListener extends ListenerAdapter {
         MessageChannel channel = event.getReaction().getChannel();
         String messageId = event.getReaction().getMessageId();
 
-        if (!event.getReaction().getReactionEmote().isEmoji()){
-            event.getReaction().removeReaction().queue();
-            return;
-        }
-
         String emoji = event.getReaction().getReactionEmote().getEmoji();
 
         if (event.getUser().isBot()){
@@ -116,6 +111,11 @@ class BotListener extends ListenerAdapter {
         }
 
         channel.retrieveMessageById(messageId).queue(message -> {
+
+            if (!event.getReaction().getReactionEmote().isEmoji()){
+                // event.getReaction().removeReaction().queue();
+                return;
+            }
 
             if (message.getEmbeds().size() == 0){
                 return;
@@ -162,11 +162,7 @@ class BotListener extends ListenerAdapter {
                         "```"
                 );
 
-                message.editMessage(menu.build()).queue((message1 -> {
-                    message1.addReaction("1\uFE0F\u20E3").queue();
-                    message1.addReaction("2\uFE0F\u20E3").queue();
-                }));
-
+                message.editMessage(menu.build()).queue();
                 return;
             }
 
@@ -291,19 +287,19 @@ class BotListener extends ListenerAdapter {
 
         String[] textList = text.split("\n");
 
-        String[] split = textList[0].split(":");
+        String[] split = textList[0].replaceAll("：",":").split(":");
         if (split.length != 2){
             return;
         }
 
-        String[] split1 = split[1].split(" ");
+        String[] split1 = split[1].replaceAll("　"," ").split(" ");
         if (!channel.getId().equals(split1[0])){
             message.delete().queue();
         }
 
-        String[] world = textList[1].split("：");
-        String[] start = textList[2].split("：");
-        String[] d = textList[3].split("：");
+        String[] world = textList[1].replaceAll(":","：").split("：");
+        String[] start = textList[2].replaceAll(":","：").split("：");
+        String[] d = textList[3].replaceAll(":","：").split("：");
 
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         EmbedBuilder result = new EmbedBuilder();
@@ -312,6 +308,7 @@ class BotListener extends ListenerAdapter {
         result.addField("ワールド名",world[1], false);
         result.addField("スタート位置",start[1], false);
         result.addField("説明",d[1], false);
+        result.addField("Discord", message.getAuthor().getName(), false);
         result.setFooter(format.format(new Date()));
 
         TextChannel textChannel = channel.getGuild().getTextChannelById(mapTextChannelId);
