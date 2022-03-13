@@ -79,7 +79,7 @@ class BotListener extends ListenerAdapter {
 
                     menu.setFooter(mapName);
                     event.getGuild().createTextChannel(mapName, event.getGuild().getCategoryById(categoryId)).syncPermissionOverrides().addRolePermissionOverride(role.getIdLong(), 68672, 0).queue((channel->{
-                        channel.sendMessage(message.getAuthor().getAsMention()).embed(menu.build()).queue((message1 -> {
+                        channel.sendMessage(message.getAuthor().getAsMention()).setEmbeds(menu.build()).queue((message1 -> {
                             message1.addReaction("1\uFE0F\u20E3").queue();
                             message1.addReaction("2\uFE0F\u20E3").queue();
 
@@ -143,7 +143,7 @@ class BotListener extends ListenerAdapter {
                             "2\uFE0F\u20E3 : Java版WorldUploaderを利用する (上でエラーが出る場合のみ利用してください。)"
                     );
 
-                    message.editMessage(menu.build()).queue((message1 -> {
+                    message.editMessageEmbeds(menu.build()).queue((message1 -> {
                         message1.addReaction("1\uFE0F\u20E3").queue();
                         message1.addReaction("2\uFE0F\u20E3").queue();
                     }));
@@ -162,7 +162,7 @@ class BotListener extends ListenerAdapter {
                         "```"
                 );
 
-                message.editMessage(menu.build()).queue();
+                message.editMessageEmbeds(menu.build()).queue();
                 return;
             }
 
@@ -196,7 +196,7 @@ class BotListener extends ListenerAdapter {
                             "7. 完了したら下にある :ok: を 失敗したら 下にある :ng: を押してください。"
                     );
 
-                    message.editMessage(menu.build()).queue((message1 -> {
+                    message.editMessageEmbeds(menu.build()).queue((message1 -> {
                         message.addReaction("\uD83C\uDD97").queue();
                         message.addReaction("\uD83C\uDD96").queue();
                     }));
@@ -211,7 +211,7 @@ class BotListener extends ListenerAdapter {
                         "3. 指示に従ってください。完了メッセージが出たら 下にある :ok: を エラーと出たら 下にある :ng: を押してください。"
                 );
 
-                message.editMessage(menu.build()).queue((message1 -> {
+                message.editMessageEmbeds(menu.build()).queue((message1 -> {
                     message.addReaction("\uD83C\uDD97").queue();
                     message.addReaction("\uD83C\uDD96").queue();
                 }));
@@ -238,7 +238,7 @@ class BotListener extends ListenerAdapter {
                         "3. 指示に従ってください。完了メッセージが出たら 下にある :ok: を エラーと出たら 下にある :ng: を押してください。"
                 );
 
-                message.editMessage(menu.build()).queue((message1 -> {
+                message.editMessageEmbeds(menu.build()).queue((message1 -> {
                     message.addReaction("\uD83C\uDD97").queue();
                     message.addReaction("\uD83C\uDD96").queue();
                 }));
@@ -272,7 +272,7 @@ class BotListener extends ListenerAdapter {
                 menu.setColor(Color.RED);
                 menu.setFooter("");
                 message.clearReactions().queue();
-                message.editMessage(menu.build()).queue();
+                message.editMessageEmbeds(menu.build()).queue();
             }
 
 
@@ -312,7 +312,7 @@ class BotListener extends ListenerAdapter {
         result.setFooter(format.format(new Date()));
 
         TextChannel textChannel = channel.getGuild().getTextChannelById(mapTextChannelId);
-        textChannel.sendMessage(result.build()).queue();
+        textChannel.sendMessageEmbeds(result.build()).queue();
 
         channel.delete().queue();
 
