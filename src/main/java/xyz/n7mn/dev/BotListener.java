@@ -39,15 +39,15 @@ public class BotListener extends ListenerAdapter {
                     .setColor(Color.GREEN)
                     .setDescription("下のボタンの**どちらか**を選んでください")
                     .addField("該当しませんか？", "該当しない場合は 報告/質問 をしてください！", false)
+                    .addField("メンテナンス", "現在 `それ以外の場合` は使用できません！申し訳ありません", false)
                     .setTimestamp(new Date().toInstant())
                     .setFooter(format.format(new Date()))
                     .build();
 
             event.getHook().sendMessageEmbeds(embed)
-                    .addActionRow(Button.of(ButtonStyle.SUCCESS, "multiplayer", "マップサーバーで作成した"), Button.of(ButtonStyle.SECONDARY, "legacy", "それ以外の場合"))
+                    .addActionRow(Button.of(ButtonStyle.SUCCESS, "multiplayer", "マップサーバーで作成した"), Button.of(ButtonStyle.SECONDARY, "legacy", "それ以外の場合").asDisabled())
                     .queue();
         }
-
     }
 
     @Override
@@ -59,25 +59,25 @@ public class BotListener extends ListenerAdapter {
                     ActionRow.of(TextInput.create("description", "説明", TextInputStyle.PARAGRAPH).setMaxLength(1024).setRequired(false).build()));
 
             event.replyModal(modal.build()).queue();
-        } else if (event.getButton().getId().equals("legacy")) {
-            event.deferReply(true).queue();
 
+            withDisable(event);
+        } else if (event.getButton().getId().equals("legacy")) {
             MessageEmbed embed = new EmbedBuilder()
                     .setTitle("World Uploaderの操作手順")
                     .setDescription(
                             "1. ワールドを作ったPCで下のURLをクリックして開きます。\n" +
-                                    "https://map.n7mn.xyz/public/\n" +
-                                    "2. TCTマップの場合は「TCT」を 雪合戦マップの場合は「雪合戦」を選択してください。\n" +
-                                    "3. Discordの名前には「Discordのユーザー名」を入れてください。(例:`茅野ななみ#2669`)\n" +
-                                    "4. Minecraft IDには「MinecraftのID」を入れてください。 (例：`7mi_chan`)\n" +
-                                    "5. 補足/説明には「スタート位置の座標」などを入れてください。(なければ何も書かなくていいです。)\n" +
-                                    "6. フォルダは以下のように選択してアップロードボタンを押してください。\n" +
-                                    "https://map.n7mn.xyz/map.png")
+                            "https://map.n7mn.xyz/public/\n" +
+                            "2. TCTマップの場合は「TCT」を 雪合戦マップの場合は「雪合戦」を選択してください。\n" +
+                            "3. Discordの名前には「Discordのユーザー名」を入れてください。(例:`茅野ななみ#2669`)\n" +
+                            "4. Minecraft IDには「MinecraftのID」を入れてください。 (例：`7mi_chan`)\n" +
+                            "5. 補足/説明には「スタート位置の座標」などを入れてください。(なければ何も書かなくていいです。)\n" +
+                            "6. フォルダは以下のように選択してアップロードボタンを押してください。\n" +
+                            "https://map.n7mn.xyz/map.png")
                     .setColor(Color.GREEN).build();
-            event.getHook().sendMessageEmbeds(embed).queue();
+            event.editMessageEmbeds(embed)
+                    .setActionRow(event.getMessage().getButtonById("multiplayer").asDisabled(), event.getMessage().getButtonById("legacy").asDisabled(), Button.of(ButtonStyle.LINK, "https://map.n7mn.xyz/public/", "URLを開く"))
+                    .queue();
         }
-
-        withDisable(event);
     }
 
     @Override
@@ -104,11 +104,9 @@ public class BotListener extends ListenerAdapter {
     }
 
     public void withDisable(ButtonInteractionEvent event) {
-        if (event.getButton().getId().equals("legacy") || event.getButton().getId().equals("multiplayer")) {
-            event.getHook().editOriginalEmbeds(event.getMessage().getEmbeds())
-                    .setActionRow(event.getMessage().getButtonById("multiplayer").asDisabled(), event.getMessage().getButtonById("legacy").asDisabled())
-                    .queue();
-        }
+        event.getHook().editOriginalEmbeds(event.getMessage().getEmbeds())
+                .setActionRow(event.getMessage().getButtonById("multiplayer").asDisabled(), event.getMessage().getButtonById("legacy").asDisabled())
+                .queue();
     }
 
     @Override
