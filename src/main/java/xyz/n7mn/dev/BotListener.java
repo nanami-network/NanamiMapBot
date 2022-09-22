@@ -88,7 +88,7 @@ public class BotListener extends ListenerAdapter {
             String description = event.getValue("description").getAsString();
 
             BotMain.getInstance().getProfiler().getTextChannel().sendMessageEmbeds(new EmbedBuilder()
-                            .setTitle("ワールド名")
+                            .setTitle("完成報告")
                             .addField("ワールド名", event.getValue("map").getAsString(), false)
                             .addField("スタート位置", event.getValue("startingPos").getAsString(), false)
                             .addField("説明", description.isBlank() ? "N/A" : description, false)
