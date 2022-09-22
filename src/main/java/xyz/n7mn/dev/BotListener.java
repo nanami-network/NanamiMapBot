@@ -1,324 +1,116 @@
 package xyz.n7mn.dev;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.react.GenericMessageReactionEvent;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.events.ReadyEvent;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.Modal;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 
-class BotListener extends ListenerAdapter {
+public class BotListener extends ListenerAdapter {
 
-    private String categoryId = "837595084529598464";
-    private String mapperRoleID = "810726799876423680";
-    private String mapTextChannelId = "835577159133298768";
+    private final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Override
-    public void onMessageReceived(@NotNull MessageReceivedEvent event) {
-        if (event.getGuild().getId().equals("810724825098092547")){
-            categoryId = "837578478186266654";
-            mapperRoleID = "837602972451078145";
-            mapTextChannelId = "837596567871029248";
-        }
-
-
-        if (event.isWebhookMessage() || event.getAuthor().isBot()){
+    public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
+        if (!event.getName().equals("map")) {
             return;
         }
 
-        if (event.isFromType(ChannelType.PRIVATE)){
-            return;
+        event.deferReply(true).queue();
+
+        if (event.getMember().getRoles().stream().noneMatch(v -> v.getIdLong() == BotMain.getInstance().getProfiler().getRoleIdLong())) {
+            event.getHook().sendMessage("このコマンドはマッパーロールを持っていないと実行できませんよ！").queue();
+        } else {
+            MessageEmbed embed = new EmbedBuilder()
+                    .setTitle("どちらで作成しましたか？")
+                    .setColor(Color.GREEN)
+                    .setDescription("下のボタンの**どちらか**を選んでください")
+                    .addField("該当しませんか？", "該当しない場合は 報告/質問 をしてください！", false)
+                    .setTimestamp(new Date().toInstant())
+                    .setFooter(format.format(new Date()))
+                    .build();
+
+            event.getHook().sendMessageEmbeds(embed)
+                    .addActionRow(Button.of(ButtonStyle.SUCCESS, "multiplayer", "マップサーバーで作成した"), Button.of(ButtonStyle.SECONDARY, "legacy", "それ以外の場合"))
+                    .queue();
         }
 
-        if (event.getMessage().getContentRaw().toLowerCase().startsWith("map:")){
-            MultiMap(event.getMessage());
-            return;
-        }
-
-        if (!event.getMessage().getContentRaw().toLowerCase().equals("!map")){
-            return;
-        }
-
-        Thread thread = new Thread(() -> {
-
-            Message message = event.getMessage();
-
-            boolean found = false;
-            List<Role> roles = message.getMember().getRoles();
-            for (Role role : roles){
-                if (role.getId().equals(mapperRoleID)){
-                    found = true;
-                    break;
-                }
-            }
-            if (!found){
-                message.reply("Mapper権限がないようです。").queue();
-                return;
-            }
-
-            EmbedBuilder menu = new EmbedBuilder();
-            menu.setColor(Color.GREEN);
-            menu.setTitle("マップ報告メニュー");
-            menu.setDescription("" +
-                    "リアクションを下の通りに押してください。\n" +
-                    "※ マップのアップデート報告も完成報告と同じ手順でお願いします。\n" +
-                    ":one: シングルワールドの場合\n" +
-                    ":two: マップ鯖の場合"
-            );
-
-            try {
-
-                String mapName = "map"+ event.getAuthor().getId();
-                message.getGuild().createRole().setName(mapName).queue(role -> {
-                    message.getGuild().addRoleToMember(message.getAuthor().getId(), role).queue();
-
-                    menu.setFooter(mapName);
-                    event.getGuild().createTextChannel(mapName, event.getGuild().getCategoryById(categoryId)).syncPermissionOverrides().addRolePermissionOverride(role.getIdLong(), 68672, 0).queue((channel->{
-                        channel.sendMessage(message.getAuthor().getAsMention()).setEmbeds(menu.build()).queue((message1 -> {
-                            message1.addReaction("1\uFE0F\u20E3").queue();
-                            message1.addReaction("2\uFE0F\u20E3").queue();
-
-                            message.reply(channel.getAsMention() + " に進んで指示に従ってください。\n(上のチャンネルが見えなくなったら報告完了です。)").queue();
-                        }));
-
-                    }));
-                });
-
-            } catch (Exception e){
-                message.reply("なにかエラーです。").queue();
-                e.printStackTrace();
-            }
-
-        });
-        thread.start();
     }
 
     @Override
-    public void onGenericMessageReaction(@NotNull GenericMessageReactionEvent event) {
+    public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
+        if (event.getButton().getId().equals("multiplayer")) {
+            Modal.Builder modal = Modal.create("multiplayer", "マップを作成したことを報告する！").addActionRows(
+                    ActionRow.of(TextInput.create("map", "ワールド名", TextInputStyle.SHORT).setMaxLength(60).setRequired(true).build()),
+                    ActionRow.of(TextInput.create("startingPos", "スタート位置", TextInputStyle.SHORT).setRequired(true).build()),
+                    ActionRow.of(TextInput.create("description", "説明", TextInputStyle.PARAGRAPH).setMaxLength(1024).setRequired(false).build()));
 
-        MessageChannel channel = event.getReaction().getChannel();
-        String messageId = event.getReaction().getMessageId();
+            event.replyModal(modal.build()).queue();
+        } else if (event.getButton().getId().equals("legacy")) {
+            event.deferReply(true).queue();
 
-        String emoji = event.getReaction().getReactionEmote().getEmoji();
-
-        if (event.getUser().isBot()){
-            return;
-        }
-
-        channel.retrieveMessageById(messageId).queue(message -> {
-
-            if (!event.getReaction().getReactionEmote().isEmoji()){
-                // event.getReaction().removeReaction().queue();
-                return;
-            }
-
-            if (message.getEmbeds().size() == 0){
-                return;
-            }
-
-            MessageEmbed embed = message.getEmbeds().get(0);
-
-            if (embed == null){
-                return;
-            }
-
-            String title = embed.getTitle();
-
-            EmbedBuilder menu = new EmbedBuilder();
-            menu.setColor(Color.GREEN);
-            menu.setFooter(embed.getFooter().getText());
-
-            if (title != null && title.equals("マップ報告メニュー")){
-                message.clearReactions().queue();
-
-                if (emoji.equals("1\uFE0F\u20E3")){
-                    menu.setTitle("シングルワールドメニュー");
-                    menu.setDescription("" +
-                            "1\uFE0F\u20E3 : World Uploaderを利用する (推奨)\n" +
-                            "2\uFE0F\u20E3 : Java版WorldUploaderを利用する (上でエラーが出る場合のみ利用してください。)"
-                    );
-
-                    message.editMessageEmbeds(menu.build()).queue((message1 -> {
-                        message1.addReaction("1\uFE0F\u20E3").queue();
-                        message1.addReaction("2\uFE0F\u20E3").queue();
-                    }));
-
-                    return;
-                }
-
-                menu.setTitle("マップ鯖メニュー");
-                menu.setDescription("" +
-                        "以下のテンプレを使って入力してください。\n" +
-                        "```\n" +
-                        "map:"+message.getTextChannel().getId()+" (左の部分はこのままにしてください)\n" +
-                        "ワールド名：\n" +
-                        "スタート位置：\n" +
-                        "説明(希望日など 1行で簡潔に)：" +
-                        "```"
-                );
-
-                message.editMessageEmbeds(menu.build()).queue();
-                return;
-            }
-
-            if (title != null && title.equals("シングルワールドメニュー")) {
-                message.clearReactions().queue();
-
-                if (emoji.equals("1\uFE0F\u20E3")) {
-
-                    menu.setTitle("World Uploaderの操作手順");
-                    menu.setDescription("" +
+            MessageEmbed embed = new EmbedBuilder()
+                    .setTitle("World Uploaderの操作手順")
+                    .setDescription(
                             "1. ワールドを作ったPCで下のURLをクリックして開きます。\n" +
-                            "https://map.n7mn.xyz/public/\n" +
-                            "2. TCTマップの場合は「TCT」を 雪合戦マップの場合は「雪合戦」を選択してください。\n" +
-                            "3. Discordの名前には「Discordのユーザー名」を入れてください。(例:`茅野ななみ#2669`)\n" +
-                            "4. Minecraft IDには「MinecraftのID」を入れてください。 (例：`7mi_chan`)\n" +
-                            "5. 補足/説明には「スタート位置の座標」などを入れてください。(なければ何も書かなくていいです。)\n" +
-                            "6. フォルダは以下のように選択してアップロードボタンを押してください。\n" +
-                            "https://map.n7mn.xyz/map.png\n" +
-                            "```\n" +
-                            "場所がわからない場合 (Windows)：\n" +
-                            "1.Minecraftの「リソースパック」を開く\n" +
-                            "2.左下の「フォルダーを開く」をクリック\n" +
-                            "3.開いたフォルダの「↑」をクリック\n" +
-                            "4.savesフォルダを右クリック\n" +
-                            "5.プロパティをクリック\n" +
-                            "6.場所に書かれた「C:￥～」の部分をコピーする\n" +
-                            "7.フォルダーのところにコピーしたものを貼り付けてEnter\n" +
-                            "8.saveフォルダをダブルクリック\n" +
-                            "  その後は上の通りにワールド名と同じフォルダをダブルクリックしてアップロード" +
-                            "```\n" +
-                            "7. 完了したら下にある :ok: を 失敗したら 下にある :ng: を押してください。"
-                    );
-
-                    message.editMessageEmbeds(menu.build()).queue((message1 -> {
-                        message.addReaction("\uD83C\uDD97").queue();
-                        message.addReaction("\uD83C\uDD96").queue();
-                    }));
-
-                    return;
-                }
-
-                menu.setTitle("Java版WorldUploaderの操作手順");
-                menu.setDescription("" +
-                        "1. https://map.n7mn.xyz/WorldUploader.zip からDLしててきとーに解凍してください。\n" +
-                        "2. startと書かれたファイルをダブルクリックして起動してください。\n" +
-                        "3. 指示に従ってください。完了メッセージが出たら 下にある :ok: を エラーと出たら 下にある :ng: を押してください。"
-                );
-
-                message.editMessageEmbeds(menu.build()).queue((message1 -> {
-                    message.addReaction("\uD83C\uDD97").queue();
-                    message.addReaction("\uD83C\uDD96").queue();
-                }));
-
-                return;
-            }
-
-            if (title != null && title.equals("World Uploaderの操作手順")) {
-                String name = embed.getFooter().getText();
-                if (emoji.equals("\uD83C\uDD97")){
-                    List<Role> roleList = event.getGuild().getRolesByName(name, true);
-
-                    roleList.get(0).delete().queue();
-                    event.getGuild().getTextChannelsByName(name, true).get(0).delete().queue();
-
-                    return;
-                }
-
-                message.clearReactions().queue();
-                menu.setTitle("Java版WorldUploaderの操作手順");
-                menu.setDescription("" +
-                        "1. https://map.n7mn.xyz/WorldUploader.zip からDLしててきとーに解凍してください。\n" +
-                        "2. startと書かれたファイルをダブルクリックして起動してください。\n" +
-                        "3. 指示に従ってください。完了メッセージが出たら 下にある :ok: を エラーと出たら 下にある :ng: を押してください。"
-                );
-
-                message.editMessageEmbeds(menu.build()).queue((message1 -> {
-                    message.addReaction("\uD83C\uDD97").queue();
-                    message.addReaction("\uD83C\uDD96").queue();
-                }));
-
-            }
-
-            if (title != null && title.equals("Java版WorldUploaderの操作手順")) {
-
-                String name = embed.getFooter().getText();
-                if (emoji.equals("\uD83C\uDD97")){
-                    List<Role> roleList = event.getGuild().getRolesByName(name, true);
-
-                    roleList.get(0).delete().queue();
-                    event.getGuild().getTextChannelsByName(name, true).get(0).delete().queue();
-
-                    return;
-                }
-
-                List<TextChannel> list = event.getGuild().getTextChannelsByName("mapperのつどい", true);
-
-                menu.setTitle("エラー");
-                menu.setDescription("" +
-                        "以下の場所でエラーが出たことを下のテンプレートをコピペして報告お願いします。\n" +
-                        list.get(0).getAsMention() + "\n" +
-                        "エラー報告用テンプレート:\n" +
-                        "```\n" +
-                        "報告botエラー報告\n" +
-                        "使用チャンネル " + name +"\n" +
-                        "```"
-                );
-                menu.setColor(Color.RED);
-                menu.setFooter("");
-                message.clearReactions().queue();
-                message.editMessageEmbeds(menu.build()).queue();
-            }
-
-
-
-        });
+                                    "https://map.n7mn.xyz/public/\n" +
+                                    "2. TCTマップの場合は「TCT」を 雪合戦マップの場合は「雪合戦」を選択してください。\n" +
+                                    "3. Discordの名前には「Discordのユーザー名」を入れてください。(例:`茅野ななみ#2669`)\n" +
+                                    "4. Minecraft IDには「MinecraftのID」を入れてください。 (例：`7mi_chan`)\n" +
+                                    "5. 補足/説明には「スタート位置の座標」などを入れてください。(なければ何も書かなくていいです。)\n" +
+                                    "6. フォルダは以下のように選択してアップロードボタンを押してください。\n" +
+                                    "https://map.n7mn.xyz/map.png")
+                    .setColor(Color.GREEN).build();
+            event.getHook().sendMessageEmbeds(embed).queue();
+        }
     }
 
+    @Override
+    public void onModalInteraction(@NotNull ModalInteractionEvent event) {
+        if (event.getModalId().equals("multiplayer")) {
+            event.deferReply(true).queue();
 
-    private void MultiMap(Message message){
-        String text = message.getContentRaw();
-        TextChannel channel = message.getTextChannel();
+            String description = event.getValue("description").getAsString();
 
-        String[] textList = text.split("\n");
+            BotMain.getInstance().getProfiler().getTextChannel().sendMessageEmbeds(new EmbedBuilder()
+                            .setTitle("ワールド名")
+                            .addField("ワールド名", event.getValue("map").getAsString(), false)
+                            .addField("スタート位置", event.getValue("startingPos").getAsString(), false)
+                            .addField("説明", description.isBlank() ? "N/A" : description, false)
+                            .addField("Discord", event.getMember().getEffectiveName() + "(" + event.getMember().getIdLong() + ")", false)
+                            .setColor(Color.GREEN)
+                            .setTimestamp(new Date().toInstant())
+                            .setFooter(format.format(new Date()))
+                            .build())
+                    .queue();
 
-        String[] split = textList[0].replaceAll("：",":").split(":");
-        if (split.length != 2){
-            return;
+            event.getHook().sendMessage("マップの完成を報告しました！ありがとうございました！").queue();
         }
+    }
 
-        String[] split1 = split[1].replaceAll("　"," ").split(" ");
-        if (!channel.getId().equals(split1[0])){
-            message.delete().queue();
+    public void withDisable(ButtonInteractionEvent event) {
+        if (event.getButton().getId().equals("legacy") || event.getButton().getId().equals("multiplayer")) {
+            event.getHook().editOriginalEmbeds(event.getMessage().getEmbeds())
+                    .setActionRow(event.getMessage().getButtonById("legacy").asDisabled(), event.getMessage().getButtonById("multiplayer").asDisabled())
+                    .queue();
         }
+    }
 
-        String[] world = textList[1].replaceAll(":","：").split("：");
-        String[] start = textList[2].replaceAll(":","：").split("：");
-        String[] d = textList[3].replaceAll(":","：").split("：");
-
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        EmbedBuilder result = new EmbedBuilder();
-        result.setTitle("完成報告");
-        result.setColor(Color.GREEN);
-        result.addField("ワールド名",world[1], false);
-        result.addField("スタート位置",start[1], false);
-        result.addField("説明",d[1], false);
-        result.addField("Discord", message.getAuthor().getName(), false);
-        result.setFooter(format.format(new Date()));
-
-        TextChannel textChannel = channel.getGuild().getTextChannelById(mapTextChannelId);
-        textChannel.sendMessageEmbeds(result.build()).queue();
-
-        channel.delete().queue();
-
-        List<Role> roleList = message.getGuild().getRolesByName(channel.getName(), true);
-        roleList.get(0).delete().queue();
-
-
+    @Override
+    public void onReady(@NotNull ReadyEvent event) {
+        BotMain.getInstance().getProfiler().registerSlashCommand();
     }
 }
