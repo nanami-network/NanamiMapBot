@@ -92,7 +92,7 @@ public class BotListener extends ListenerAdapter {
                             .addField("ワールド名", event.getValue("map").getAsString(), false)
                             .addField("スタート位置", event.getValue("startingPos").getAsString(), false)
                             .addField("説明", description.isBlank() ? "N/A" : description, false)
-                            .addField("Discord", event.getMember().getEffectiveName() + "(" + event.getMember().getIdLong() + ")", false)
+                            .addField("Discord", event.getMember().getAsMention() + "(" + event.getMember().getIdLong() + ")", false)
                             .setColor(Color.GREEN)
                             .setTimestamp(new Date().toInstant())
                             .setFooter(format.format(new Date()))
