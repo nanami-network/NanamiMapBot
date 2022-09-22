@@ -76,6 +76,8 @@ public class BotListener extends ListenerAdapter {
                     .setColor(Color.GREEN).build();
             event.getHook().sendMessageEmbeds(embed).queue();
         }
+
+        withDisable(event);
     }
 
     @Override
@@ -104,7 +106,7 @@ public class BotListener extends ListenerAdapter {
     public void withDisable(ButtonInteractionEvent event) {
         if (event.getButton().getId().equals("legacy") || event.getButton().getId().equals("multiplayer")) {
             event.getHook().editOriginalEmbeds(event.getMessage().getEmbeds())
-                    .setActionRow(event.getMessage().getButtonById("legacy").asDisabled(), event.getMessage().getButtonById("multiplayer").asDisabled())
+                    .setActionRow(event.getMessage().getButtonById("multiplayer").asDisabled(), event.getMessage().getButtonById("legacy").asDisabled())
                     .queue();
         }
     }
