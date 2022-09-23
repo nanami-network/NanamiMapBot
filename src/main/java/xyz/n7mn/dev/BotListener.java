@@ -59,8 +59,6 @@ public class BotListener extends ListenerAdapter {
                     ActionRow.of(TextInput.create("description", "説明", TextInputStyle.PARAGRAPH).setMaxLength(1024).setRequired(false).build()));
 
             event.replyModal(modal.build()).queue();
-
-            withDisable(event);
         } else if (event.getButton().getId().equals("legacy")) {
             MessageEmbed embed = new EmbedBuilder()
                     .setTitle("World Uploaderの操作手順")
@@ -83,7 +81,11 @@ public class BotListener extends ListenerAdapter {
     @Override
     public void onModalInteraction(@NotNull ModalInteractionEvent event) {
         if (event.getModalId().equals("multiplayer")) {
-            event.deferReply(true).queue();
+            event.deferEdit().queue();
+
+            event.getHook().editOriginalEmbeds(event.getMessage().getEmbeds())
+                    .setActionRow(event.getMessage().getButtonById("multiplayer").asDisabled(), event.getMessage().getButtonById("legacy").asDisabled())
+                    .queue();
 
             String description = event.getValue("description").getAsString();
 
@@ -99,14 +101,9 @@ public class BotListener extends ListenerAdapter {
                             .build())
                     .queue();
 
-            event.getHook().sendMessage("マップの完成を報告しました！ありがとうございました！").queue();
+            event.getHook().sendMessage("マップの完成を報告しました！ありがとうございました！")
+                    .setEphemeral(true).queue();
         }
-    }
-
-    public void withDisable(ButtonInteractionEvent event) {
-        event.getHook().editOriginalEmbeds(event.getMessage().getEmbeds())
-                .setActionRow(event.getMessage().getButtonById("multiplayer").asDisabled(), event.getMessage().getButtonById("legacy").asDisabled())
-                .queue();
     }
 
     @Override
